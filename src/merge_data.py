@@ -1,6 +1,6 @@
 import pandas as pd
-from data_loader import load_jgb_data, filter_window
-from fx_loader import load_usdjpy
+from .data_loader import load_jgb_data, filter_window
+from .fx_loader import load_usdjpy
 
 def build_merged_dataset(start_year=2011):
     jgb = load_jgb_data()
