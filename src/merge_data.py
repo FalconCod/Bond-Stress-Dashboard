@@ -12,9 +12,13 @@ def build_merged_dataset(start_year=2011):
     merged = jgb[['1Y', '10Y']].join(fx, how='inner')
     return merged
 
+def add_slope(df):
+    df = df.copy()
+    df['slope_10y_1y'] = df['10Y'] - df['1Y']
+    return df
+
 if __name__ == "__main__":
     merged = build_merged_dataset()
-    print(merged.head())
-    print(merged.tail())
-    print(merged.shape)
-    print(merged.isna().sum())
+    merged = add_slope(merged)
+    print(merged[['1Y', '10Y', 'slope_10y_1y']].head())
+    print(merged['slope_10y_1y'].describe())
