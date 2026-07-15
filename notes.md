@@ -23,6 +23,10 @@ per trading day.
 - Positive slope = normal curve (long end pays more, as expected).
 - Near-zero/negative = flattened/inverted curve, historically a
   stress/recession-expectation signal.
+- Verified visually: plotted 1Y and 10Y raw yields together
+(notebooks/raw_yields_plot.png) — lines visibly cross during the
+Aug-Sep 2019 window, confirming the inversion is real, not a
+calculation artifact.
 
 ### Finding: Aug-Sep 2019 inversion
 8 trading days with negative slope, both 1Y and 10Y yields negative.

@@ -65,14 +65,25 @@ def plot_slope(df):
     plt.savefig(f'notebooks/slope_plot_{datetime.now().strftime("%Y%m%d_%H%M")}.png')
     print("saved to notebooks/slope_plot.png")
 
+def plot_raw_yields(df):
+    plt.figure(figsize=(12, 5))
+    plt.plot(df.index, df['1Y'], label='1Y yield')
+    plt.plot(df.index, df['10Y'], label='10Y yield')
+    plt.title('JGB 1Y vs 10Y Yield (2011-2026)')
+    plt.ylabel('Yield (%)')
+    plt.legend()
+    plt.savefig('notebooks/raw_yields_plot.png')
+    print("saved to notebooks/raw_yields_plot.png")
+    
 if __name__ == "__main__":
     merged = build_merged_dataset()
     merged = add_slope(merged)
+    plot_raw_yields(merged)
+    plot_slope(merged)
 
     print(merged[['1Y', '10Y', 'slope_10y_1y']].head())
     print(merged['slope_10y_1y'].describe())
 
-    plot_slope(merged)
 
     # find exactly which dates went negative
     inverted = merged[merged['slope_10y_1y'] < 0]
