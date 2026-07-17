@@ -61,8 +61,7 @@ def plot_slope(df):
     plt.axhline(0, color='red', linestyle='--', linewidth=1)
     plt.title('JGB 10Y-1Y Slope (2011-2026)')
     plt.ylabel('Slope (pp)')
-    # plt.savefig('notebooks/slope_plot.png')
-    plt.savefig(f'notebooks/slope_plot_{datetime.now().strftime("%Y%m%d_%H%M")}.png')
+    plt.savefig('notebooks/slope_plot.png')
     print("saved to notebooks/slope_plot.png")
 
 def plot_raw_yields(df):
@@ -75,17 +74,34 @@ def plot_raw_yields(df):
     plt.savefig('notebooks/raw_yields_plot.png')
     print("saved to notebooks/raw_yields_plot.png")
     
+    
+def add_volatility(df, window=30):
+    df = df.copy()
+    df['yield_change'] = df['10Y'].diff()
+    df['vol_30d'] = df['yield_change'].rolling(window=window).std()
+    return df
+
+def plot_volatility(df):
+    plt.figure(figsize=(12, 5))
+    plt.plot(df.index, df['vol_30d'])
+    plt.title('JGB 10Y Yield 30-Day Rolling Volatility (2011-2026)')
+    plt.ylabel('Volatility (pp)')
+    plt.savefig('notebooks/volatility_plot.png')
+    print("saved to notebooks/volatility_plot.png")
+    
+    
 if __name__ == "__main__":
     merged = build_merged_dataset()
     merged = add_slope(merged)
-    plot_raw_yields(merged)
+    merged = add_volatility(merged)
+
+    print(merged[['10Y', 'yield_change', 'vol_30d']].head(35))
+    print(merged['vol_30d'].describe())
+
     plot_slope(merged)
+    plot_raw_yields(merged)
+    plot_volatility(merged)
 
-    print(merged[['1Y', '10Y', 'slope_10y_1y']].head())
-    print(merged['slope_10y_1y'].describe())
-
-
-    # find exactly which dates went negative
     inverted = merged[merged['slope_10y_1y'] < 0]
     print(f"\nInverted on {len(inverted)} days")
     print(inverted[['1Y', '10Y', 'slope_10y_1y']])
