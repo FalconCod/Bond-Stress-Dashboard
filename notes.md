@@ -66,8 +66,12 @@ roughly halved.
 - Zero missing values, USD/JPY, full window.
 - Merged dataset: 3781 rows, zero NaNs across all columns.
 
+## Indicator 2: Rolling 30-day yield volatility
+Formula: daily change in 10Y yield, then 30-day rolling std dev of that
+change. Implemented in `add_volatility` (src/merge_data.py), plotted to
+notebooks/volatility_plot.png.
+
 ## Open items / next steps
-- [ ] Rolling 30-day yield volatility (second indicator)
 - [ ] Correlation check between slope, volatility, USD/JPY before
       deciding composite weights (don't assume independence)
 - [ ] Z-score normalization
