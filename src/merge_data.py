@@ -52,12 +52,49 @@ def plot_volatility(df):
     plt.ylabel('Volatility (pp)')
     plt.savefig('notebooks/volatility_plot.png')
     print("saved to notebooks/volatility_plot.png")
-    
-    
+
+
+def add_fx_change(df):
+    df = df.copy()
+    df['usdjpy_change'] = df['USDJPY'].pct_change() * 100
+    return df
+
+
+def compute_correlation(df, columns=('slope_10y_1y', 'vol_30d', 'usdjpy_change')):
+    return df[list(columns)].corr()
+
+
+def plot_correlation_heatmap(corr):
+    plt.figure(figsize=(6, 5))
+    plt.imshow(corr, cmap='coolwarm', vmin=-1, vmax=1)
+    plt.colorbar(label='Correlation')
+    plt.xticks(range(len(corr.columns)), corr.columns, rotation=45, ha='right')
+    plt.yticks(range(len(corr.columns)), corr.columns)
+    for i in range(len(corr.columns)):
+        for j in range(len(corr.columns)):
+            plt.text(j, i, f'{corr.iloc[i, j]:.2f}', ha='center', va='center')
+    plt.title('Correlation: slope vs volatility vs USD/JPY daily change')
+    plt.tight_layout()
+    plt.savefig('notebooks/correlation_heatmap.png')
+    print("saved to notebooks/correlation_heatmap.png")
+
+
+def plot_scatter(df, x_col, y_col, title, filename):
+    plt.figure(figsize=(6, 5))
+    plt.scatter(df[x_col], df[y_col], s=10, alpha=0.5)
+    plt.xlabel(x_col)
+    plt.ylabel(y_col)
+    plt.title(title)
+    plt.tight_layout()
+    plt.savefig(f'notebooks/{filename}')
+    print(f"saved to notebooks/{filename}")
+
+
 if __name__ == "__main__":
     merged = build_merged_dataset()
     merged = add_slope(merged)
     merged = add_volatility(merged)
+    merged = add_fx_change(merged)
 
     print(merged[['10Y', 'yield_change', 'vol_30d']].head(35))
     print(merged['vol_30d'].describe())
@@ -69,3 +106,14 @@ if __name__ == "__main__":
     inverted = merged[merged['slope_10y_1y'] < 0]
     print(f"\nInverted on {len(inverted)} days")
     print(inverted[['1Y', '10Y', 'slope_10y_1y']])
+
+    corr = compute_correlation(merged)
+    print("\nCorrelation matrix (slope, vol_30d, usdjpy_change):")
+    print(corr)
+    plot_correlation_heatmap(corr)
+
+    scatter_df = merged.dropna(subset=['slope_10y_1y', 'vol_30d', 'usdjpy_change'])
+    plot_scatter(scatter_df, 'slope_10y_1y', 'vol_30d',
+                 'Slope vs 30-day volatility', 'scatter_slope_vol.png')
+    plot_scatter(scatter_df, 'slope_10y_1y', 'usdjpy_change',
+                 'Slope vs USD/JPY daily change', 'scatter_slope_fx.png')
