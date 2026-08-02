@@ -90,6 +90,33 @@ def plot_scatter(df, x_col, y_col, title, filename):
     print(f"saved to notebooks/{filename}")
 
 
+def add_zscores(df):
+    df = df.copy()
+    df['z_slope'] = (df['slope_10y_1y'] - df['slope_10y_1y'].mean()) / df['slope_10y_1y'].std()
+    df['z_vol'] = (df['vol_30d'] - df['vol_30d'].mean()) / df['vol_30d'].std()
+    df['z_fx'] = (df['usdjpy_change'] - df['usdjpy_change'].mean()) / df['usdjpy_change'].std()
+    return df
+
+
+def add_composite_score(df):
+    df = df.copy()
+    # slope is inverted: low/negative slope (flattening/inversion) signals stress,
+    # so a calm steep curve must not push the score up. vol and fx already
+    # point the right way (higher = more stress) per notes.md.
+    df['stress_score'] = (-df['z_slope'] + df['z_vol'] + df['z_fx']) / 3
+    return df
+
+
+def plot_composite_score(df):
+    plt.figure(figsize=(12, 5))
+    plt.plot(df.index, df['stress_score'])
+    plt.axhline(0, color='gray', linestyle='--', linewidth=1)
+    plt.title('JGB Composite Stress Score (2011-2026)')
+    plt.ylabel('Stress score (z-score avg)')
+    plt.savefig('notebooks/composite_score_plot.png')
+    print("saved to notebooks/composite_score_plot.png")
+
+
 if __name__ == "__main__":
     merged = build_merged_dataset()
     merged = add_slope(merged)
@@ -117,3 +144,13 @@ if __name__ == "__main__":
                  'Slope vs 30-day volatility', 'scatter_slope_vol.png')
     plot_scatter(scatter_df, 'slope_10y_1y', 'usdjpy_change',
                  'Slope vs USD/JPY daily change', 'scatter_slope_fx.png')
+
+    scored = add_zscores(scatter_df)
+    scored = add_composite_score(scored)
+    print("\nComposite stress score summary:")
+    print(scored['stress_score'].describe())
+    plot_composite_score(scored)
+
+    top_stress = scored.sort_values('stress_score', ascending=False).head(10)
+    print("\nTop 10 highest-stress days:")
+    print(top_stress[['slope_10y_1y', 'vol_30d', 'usdjpy_change', 'stress_score']])
