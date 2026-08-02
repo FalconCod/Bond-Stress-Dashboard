@@ -1,5 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+from matplotlib import dates as mdates
 from .data_loader import load_jgb_data, filter_window
 from .fx_loader import load_usdjpy
 from datetime import datetime
@@ -117,6 +118,52 @@ def plot_composite_score(df):
     print("saved to notebooks/composite_score_plot.png")
 
 
+KNOWN_STRESS_EVENTS = [
+    ('2013-04-04', 'BOJ QQE "bazooka" launch'),
+    ('2019-08-14', '2019 inversion / US-China trade war'),
+    ('2020-03-16', 'COVID-19 crash'),
+    ('2023-01-24', 'BOJ YCC band widening'),
+]
+
+
+def validate_against_known_events(df, events=KNOWN_STRESS_EVENTS, window_days=30):
+    results = []
+    for date_str, label in events:
+        date = pd.Timestamp(date_str)
+        window = df.loc[date - pd.Timedelta(days=window_days): date + pd.Timedelta(days=window_days)]
+        if window.empty:
+            continue
+        peak_date = window['stress_score'].idxmax()
+        peak_score = window['stress_score'].max()
+        percentile = (df['stress_score'] < peak_score).mean() * 100
+        results.append({
+            'event': label,
+            'target_date': date_str,
+            'peak_date': peak_date.date(),
+            'peak_score': round(peak_score, 3),
+            'percentile': round(percentile, 1),
+        })
+    return pd.DataFrame(results)
+
+
+def plot_composite_score_annotated(df, events=KNOWN_STRESS_EVENTS):
+    plt.figure(figsize=(12, 5))
+    plt.plot(df.index, df['stress_score'], linewidth=0.8)
+    plt.axhline(0, color='gray', linestyle='--', linewidth=1)
+    for date_str, label in events:
+        date = pd.Timestamp(date_str)
+        if date < df.index.min() or date > df.index.max():
+            continue
+        plt.axvline(date, color='red', linestyle=':', linewidth=1, alpha=0.7) # type: ignore
+        plt.text(date, df['stress_score'].max(), label, rotation=90, # type: ignore
+                 fontsize=7, va='top', ha='right', color='red')
+    plt.title('JGB Composite Stress Score with Known Stress Events (2011-2026)')
+    plt.ylabel('Stress score (z-score avg)')
+    plt.tight_layout()
+    plt.savefig('notebooks/composite_score_annotated.png')
+    print("saved to notebooks/composite_score_annotated.png")
+
+
 if __name__ == "__main__":
     merged = build_merged_dataset()
     merged = add_slope(merged)
@@ -154,3 +201,8 @@ if __name__ == "__main__":
     top_stress = scored.sort_values('stress_score', ascending=False).head(10)
     print("\nTop 10 highest-stress days:")
     print(top_stress[['slope_10y_1y', 'vol_30d', 'usdjpy_change', 'stress_score']])
+
+    validation = validate_against_known_events(scored)
+    print("\nValidation against known stress events:")
+    print(validation.to_string(index=False))
+    plot_composite_score_annotated(scored)
