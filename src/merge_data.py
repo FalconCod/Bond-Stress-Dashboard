@@ -1,9 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-from matplotlib import dates as mdates
 from .data_loader import load_jgb_data, filter_window
 from .fx_loader import load_usdjpy
-from datetime import datetime
 
 def build_merged_dataset(start_year=2011):
     jgb = load_jgb_data()
