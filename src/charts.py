@@ -10,7 +10,25 @@ RANGE_BUTTONS = [
     dict(step="all", label="max"),
 ]
 
-PLOTLY_CONFIG = {"displayModeBar": False, "scrollZoom": True}
+PLOTLY_CONFIG = {
+    "displayModeBar": True,
+    "displaylogo": False,
+    "scrollZoom": True,
+    # Plotly's own built-in zoom in / zoom out / reset buttons, rather than
+    # custom HTML buttons wired up with hand-rolled JS: this is native,
+    # battle-tested Plotly behavior instead of code we have to debug.
+    "modeBarButtonsToRemove": [
+        "zoom2d",
+        "pan2d",
+        "select2d",
+        "lasso2d",
+        "autoScale2d",
+        "toImage",
+        "hoverClosestCartesian",
+        "hoverCompareCartesian",
+        "toggleSpikelines",
+    ],
+}
 
 
 def _base_layout(fig, theme, height=320):
@@ -19,6 +37,11 @@ def _base_layout(fig, theme, height=320):
         dragmode="pan",
         uirevision="constant",
         transition={"duration": 0},
+        modebar=dict(
+            bgcolor="rgba(0,0,0,0)",
+            color=theme["muted"],
+            activecolor=theme["cyan"],
+        ),
         plot_bgcolor=theme["panel"],
         paper_bgcolor=theme["panel"],
         font=dict(color=theme["text"], family="IBM Plex Mono", size=11),
