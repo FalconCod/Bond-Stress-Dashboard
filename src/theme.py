@@ -10,6 +10,9 @@ THEMES = {
         "red": "#e74c3c",
         "blue": "#4fc3f7",
         "cyan": "#00d4d4",
+        # A pale color tint on a near-black panel already reads clearly;
+        # the same opacity on a near-white panel washes out to nothing.
+        "band_opacity": 0.14,
     },
     "light": {
         "bg": "#f4f5f7",
@@ -22,6 +25,7 @@ THEMES = {
         "red": "#c0392b",
         "blue": "#1565c0",
         "cyan": "#007a7a",
+        "band_opacity": 0.22,
     },
 }
 

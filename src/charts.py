@@ -119,3 +119,35 @@ def volatility_chart(df, theme, height=320):
 
 def usdjpy_chart(df, theme, height=320):
     return single_series_chart(df, theme, "USDJPY", "USD/JPY", "green", height)
+
+
+def composite_score_chart(df, theme, thresholds=(0.5, 1.5), height=340):
+    """Composite stress score with green/amber/red threshold bands.
+
+    Bands are chosen from the Day 5 validation: known stress events
+    (2013 QQE launch, 2019 inversion, COVID crash, 2023 YCC widening) all
+    peaked between ~1.1 and ~2.7, so >1.5 reads as genuine stress, 0.5-1.5
+    as elevated, and below 0.5 as calm.
+    """
+    score = df["stress_score"]
+    y_min = min(score.min(), -thresholds[0]) - 0.3
+    y_max = max(score.max(), thresholds[1]) + 0.3
+    calm_edge, stress_edge = thresholds
+
+    fig = go.Figure()
+    fig.add_trace(go.Scattergl(
+        x=df.index, y=score, name="stress_score",
+        line=dict(width=1.6, color=theme["text"]), showlegend=False,
+    ))
+
+    bands = [
+        (y_min, calm_edge, theme["green"]),
+        (calm_edge, stress_edge, theme["amber"]),
+        (stress_edge, y_max, theme["red"]),
+    ]
+    for y0, y1, color in bands:
+        fig.add_hrect(y0=y0, y1=y1, fillcolor=color, opacity=theme["band_opacity"], layer="below", line_width=0)
+
+    fig = _base_layout(fig, theme, height)
+    fig.update_yaxes(range=[y_min, y_max], autorange=False)
+    return fig
