@@ -1,19 +1,20 @@
 """Streamlit rendering helpers for the dashboard. Keeps app.py to layout
 orchestration only — all HTML/markup generation lives here."""
 
-from pathlib import Path
+from string import Template
 
 import streamlit as st
 
 from src.charts import PLOTLY_CONFIG
 from src.sparkline import sparkline_svg
+from src.styles import CSS_TEMPLATE
 
 CHART_COLS = 2
-CSS_PATH = Path(__file__).parent.parent / "assets" / "style.css"
 
 
 def inject_css(theme):
-    st.markdown(f"<style>{CSS_PATH.read_text().format(**theme)}</style>", unsafe_allow_html=True)
+    css = Template(CSS_TEMPLATE).substitute(**theme)
+    st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
 
 
 def status_color(theme, value, thresholds=(0.3, 0.8)):
@@ -24,29 +25,42 @@ def status_color(theme, value, thresholds=(0.3, 0.8)):
     return theme["red"]
 
 
-def render_header(theme, data_start, data_end):
-    header_col, toggle_col = st.columns([5, 1])
-    with header_col:
-        st.markdown(
-            f"""
-            <div class="app-header">
-                <div>
-                    <p class="app-title">JGB BOND STRESS MONITOR</p>
-                    <p class="app-sub">Japanese Government Bond &middot; 1Y / 10Y &middot; USD/JPY</p>
-                </div>
-                <div style="text-align:right;">
-                    <p class="app-sub">DATA WINDOW</p>
-                    <p class="app-sub" style="color:{theme['muted']};">{data_start} &rarr; {data_end}</p>
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-    with toggle_col:
-        st.markdown("<div class='theme-toggle'>", unsafe_allow_html=True)
+def render_theme_toggle_sidebar(theme):
+    """Theme toggle lives in the sidebar rather than a per-page header, so
+    it's in the same place and behaves identically on every page of the
+    multi-page app. Styled via the sidebar-scoped stWidgetLabel selector
+    in style.css, not a wrapper div — st.markdown calls each render into
+    their own container, so an opening tag from one call and a closing
+    tag from another never actually nest anything in the real DOM."""
+    with st.sidebar:
         is_light = st.toggle("Light mode", value=(st.session_state.theme_name == "light"))
-        st.markdown("</div>", unsafe_allow_html=True)
-        return "light" if is_light else "dark"
+    return "light" if is_light else "dark"
+
+
+def render_page_header(theme, title, subtitle, data_start=None, data_end=None):
+    # Built as flat, unindented strings rather than nested triple-quoted
+    # blocks: splicing an indented f-string into another indented
+    # f-string pushes some lines past 4 leading spaces, which CommonMark
+    # reads as an indented code block and renders as literal text
+    # instead of parsing as HTML.
+    date_html = ""
+    if data_start is not None and data_end is not None:
+        date_html = (
+            '<div style="text-align:right;">'
+            '<p class="app-sub">DATA WINDOW</p>'
+            f'<p class="app-sub" style="color:{theme["muted"]};">{data_start} &rarr; {data_end}</p>'
+            "</div>"
+        )
+    header_html = (
+        '<div class="app-header">'
+        "<div>"
+        f'<p class="app-title">{title}</p>'
+        f'<p class="app-sub">{subtitle}</p>'
+        "</div>"
+        f"{date_html}"
+        "</div>"
+    )
+    st.markdown(header_html, unsafe_allow_html=True)
 
 
 def render_status_legend(theme):
@@ -85,7 +99,7 @@ def render_chart_panel(title, fig, accent):
     dot = f'<span class="legend-dot" style="background:{accent};"></span>' if accent else ""
     with st.container(border=True):
         st.markdown(f"<p class='panel-title'>{dot}{title}</p>", unsafe_allow_html=True)
-        st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG, key=f"chart_{title}")
+        st.plotly_chart(fig, width="stretch", config=PLOTLY_CONFIG, key=f"chart_{title}")
 
 
 def render_chart_grid(panels):

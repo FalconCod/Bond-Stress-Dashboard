@@ -151,3 +151,44 @@ def composite_score_chart(df, theme, thresholds=(0.5, 1.5), height=340):
     fig = _base_layout(fig, theme, height)
     fig.update_yaxes(range=[y_min, y_max], autorange=False)
     return fig
+
+
+def ns_factor_chart(betas_df, column, name, color_key, theme, height=280):
+    fig = go.Figure()
+    fig.add_trace(go.Scattergl(
+        x=betas_df.index, y=betas_df[column], name=name,
+        line=dict(width=1.6, color=theme[color_key]), showlegend=False,
+    ))
+    return _base_layout(fig, theme, height)
+
+
+def ns_fit_comparison_chart(raw_df, betas_df, dates, theme, height=380):
+    """Actual (markers) vs Nelson-Siegel fitted (line) curve, for a
+    handful of sample dates — the sanity check that the fit is tracking
+    real curve shape, not just producing numbers."""
+    from src.curve import TENORS, ns_curve
+
+    fine_tenors = TENORS  # keep to the actual traded tenors we fit on
+    smooth_tenors = [t / 4 for t in range(8, 121)]  # 2..30y, quarter-year steps
+    lam = betas_df["ns_lambda"].iloc[0]
+    palette_keys = ["blue", "amber", "cyan", "green", "red"]
+
+    fig = go.Figure()
+    for i, date in enumerate(dates):
+        color = theme[palette_keys[i % len(palette_keys)]]
+        actual = raw_df.loc[date, [f"{t}Y" for t in fine_tenors]].values.astype(float)
+        fig.add_trace(go.Scatter(
+            x=fine_tenors, y=actual, mode="markers", name=f"{date} actual",
+            marker=dict(size=7, color=color),
+        ))
+        betas = betas_df.loc[date, ["ns_level", "ns_slope", "ns_curvature"]].values.astype(float)
+        fitted = ns_curve(smooth_tenors, betas, lam)
+        fig.add_trace(go.Scatter(
+            x=smooth_tenors, y=fitted, mode="lines", name=f"{date} fitted",
+            line=dict(width=1.4, color=color, dash="dot"),
+        ))
+
+    fig = _base_layout(fig, theme, height)
+    fig.update_xaxes(rangeselector=None, title_text="Maturity (years)")
+    fig.update_yaxes(title_text="Yield (%)")
+    return fig
